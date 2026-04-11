@@ -1,0 +1,38 @@
+========================================
+FindIt - Objetos Perdidos
+========================================
+
+REQUISITOS
+----------
+- Node.js instalado
+
+INSTALACION
+----------
+1. Instalar dependencias del backend:
+   cd backend
+   npm install
+
+2. Instalar dependencias del frontend:
+   cd frontend
+   npm install
+
+EJECUTAR
+--------
+1. Iniciar el backend (Terminal 1):
+   cd backend
+   npm start
+   (Backend corre en http://localhost:3001)
+
+2. Iniciar el frontend (Terminal 2):
+   cd frontend
+   npm run dev
+   (Frontend abre en http://localhost:5173)
+
+TECNOLOGIAS
+-----------
+- Frontend: React + Vite
+- Backend: Node.js + Express + SQLite
+
+REPOSITORIO
+----------
+https://github.com/sant-maldonado/ObjetosPerdidos

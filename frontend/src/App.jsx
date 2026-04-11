@@ -28,18 +28,22 @@ function App() {
       if (filtros.estado) params.append('estado', filtros.estado)
       
       const res = await fetch(`${API_URL}?${params}`)
+      if (!res.ok) throw new Error('Error de servidor: ' + res.status)
       const data = await res.json()
+      if (data.error) throw new Error(data.error)
       setObjetos(data)
     } catch (err) {
-      console.error('Error fetching:', err)
+      console.error('Error fetching:', err.message)
+      setObjetos([])
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
+    setLoading(true)
     fetchObjetos()
-  }, [filtros])
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()

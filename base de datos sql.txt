@@ -1,0 +1,188 @@
+========================================
+FindIt - Configurar PostgreSQL
+========================================
+
+OPCION 1: PostgreSQL Local (Tu computadora)
+========================================
+
+1. Descargar PostgreSQL:
+   - Windows: https://www.postgresql.org/download/windows/
+   - Instalar con usuario: postgres
+   - Contraseña: postgres (o la que pongas)
+
+2. Abrir pgAdmin o terminal:
+   - psql -U postgres
+
+3. Crear base de datos:
+   CREATE DATABASE objetos_perdidos;
+
+4. Crear tabla:
+   CREATE TABLE objetos (
+       id SERIAL PRIMARY KEY,
+       titulo TEXT NOT NULL,
+       descripcion TEXT,
+       categoria TEXT,
+       estado TEXT NOT NULL CHECK(estado IN ('perdido', 'encontrado')),
+       fecha TEXT,
+       contacto TEXT,
+       imagen TEXT,
+       ubicacion TEXT,
+       creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
+
+5. Instalar driver:
+   cd backend
+   npm install pg
+
+6. Modificar server.js para usar PostgreSQL
+   (Ver archivo: backend/server-postgres.js)
+
+
+========================================
+OPCION 2: PostgreSQL Online (Render/Railway)
+========================================
+
+1. Crear cuenta en https://render.com o https://railway.app
+
+2. Crear nuevo PostgreSQL:
+   - Render: New → PostgreSQL
+   - Railway: New → PostgreSQL
+
+3. Obtener Connection String:
+   - postgresql://user:pass@host:port/database
+
+4. Usar variable de entorno:
+   DATABASE_URL=postgresql://...
+
+
+========================================
+CODIGO POSTGRESQL (backend/server-postgres.js)
+========================================
+
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+
+const app = express();
+const PORT = 3001;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+app.use(cors());
+app.use(express.json());
+
+// GET all objetos
+app.get('/api/objetos', async (req, res) => {
+  const { busqueda, categoria, estado } = req.query;
+  let sql = 'SELECT * FROM objetos WHERE 1=1';
+  const params = [];
+
+  if (busqueda) {
+    sql += ' AND (titulo LIKE $1 OR descripcion LIKE $1)';
+    params.push(`%${busqueda}%`);
+  }
+  if (categoria) {
+    sql += params.length ? ' AND categoria = $' + (params.length + 1) : ' AND categoria = $1';
+    params.push(categoria);
+  }
+  if (estado) {
+    sql += params.length ? ' AND estado = $' + (params.length + 1) : ' AND estado = $1';
+    params.push(estado);
+  }
+
+  sql += ' ORDER BY creado_en DESC';
+  const result = await pool.query(sql, params);
+  res.json(result.rows);
+});
+
+// GET one objeto
+app.get('/api/objetos/:id', async (req, res) => {
+  const result = await pool.query('SELECT * FROM objetos WHERE id = $1', [req.params.id]);
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Objeto no encontrado' });
+  }
+  res.json(result.rows[0]);
+});
+
+// POST new objeto
+app.post('/api/objetos', async (req, res) => {
+  const { titulo, descripcion, categoria, estado, fecha, contacto, imagen, ubicacion } = req.body;
+  
+  if (!titulo || !estado) {
+    return res.status(400).json({ error: 'Título y estado son requeridos' });
+  }
+
+  const result = await pool.query(
+    `INSERT INTO objetos (titulo, descripcion, categoria, estado, fecha, contacto, imagen, ubicacion)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+    [titulo, descripcion, categoria, estado, fecha, contacto, imagen, ubicacion]
+  );
+
+  res.json({ id: result.rows[0].id, message: 'Objeto creado' });
+});
+
+// PUT update objeto
+app.put('/api/objetos/:id', async (req, res) => {
+  const { titulo, descripcion, categoria, estado, fecha, contacto, imagen, ubicacion } = req.body;
+  
+  const result = await pool.query(
+    `UPDATE objetos SET titulo = COALESCE($1, titulo), descripcion = COALESCE($2, descripcion),
+     categoria = COALESCE($3, categoria), estado = COALESCE($4, estado), fecha = COALESCE($5, fecha),
+     contacto = COALESCE($6, contacto), imagen = COALESCE($7, imagen), ubicacion = COALESCE($8, ubicacion)
+     WHERE id = $9`,
+    [titulo, descripcion, categoria, estado, fecha, contacto, imagen, ubicacion, req.params.id]
+  );
+
+  if (result.rowCount === 0) {
+    return res.status(404).json({ error: 'Objeto no encontrado' });
+  }
+  res.json({ message: 'Objeto actualizado' });
+});
+
+// DELETE objeto
+app.delete('/api/objetos/:id', async (req, res) => {
+  const result = await pool.query('DELETE FROM objetos WHERE id = $1', [req.params.id]);
+  
+  if (result.rowCount === 0) {
+    return res.status(404).json({ error: 'Objeto no encontrado' });
+  }
+  res.json({ message: 'Objeto eliminado' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
+
+========================================
+VARIABLES DE ENTORNO (.env)
+========================================
+
+# Desarrollo local
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/objetos_perdidos
+
+# Producción (Render/Railway)
+# DATABASE_URL=postgresql://...
+
+
+========================================
+RESUMEN
+========================================
+
+1. Instalar PostgreSQL
+2. Crear base de datos y tabla
+3. npm install pg en backend
+4. Usar server-postgres.js en vez de server.js
+5. Crear archivo .env con DATABASE_URL
+
+
+========================================
+RECURSOS
+========================================
+
+- PostgreSQL: https://www.postgresql.org
+- Render: https://render.com
+- Railway: https://railway.app
+- Supabase: https://supabase.com (alternativa fácil)
