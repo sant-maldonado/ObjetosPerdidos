@@ -2,9 +2,25 @@ const express = require('express');
 const cors = require('cors');
 const Database = require('better-sqlite3');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const PORT = 3001;
+
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, unique + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage });
 
 const db = new Database(path.join(__dirname, 'findit.db'));
 
@@ -25,6 +41,7 @@ db.exec(`
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(uploadDir));
 
 app.get('/api/objetos', (req, res) => {
   const { busqueda, categoria, estado } = req.query;
@@ -62,8 +79,10 @@ app.get('/api/objetos/:id', (req, res) => {
   res.json(objeto);
 });
 
-app.post('/api/objetos', (req, res) => {
-  const { titulo, descripcion, categoria, estado, fecha, contacto, imagen, ubicacion } = req.body;
+app.post('/api/objetos', upload.single('imagen'), (req, res) => {
+  const { titulo, descripcion, categoria, estado, fecha, contacto, ubicacion } = req.body;
+  
+  const imagenPath = req.file ? `/uploads/${req.file.filename}` : '';
   
   if (!titulo || !estado) {
     return res.status(400).json({ error: 'Título y estado son requeridos' });
@@ -74,7 +93,7 @@ app.post('/api/objetos', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
   
-  const result = stmt.run(titulo, descripcion || '', categoria || '', estado, fecha || '', contacto || '', imagen || '', ubicacion || '');
+  const result = stmt.run(titulo, descripcion || '', categoria || '', estado, fecha || '', contacto || '', imagenPath, ubicacion || '');
   
   res.json({ id: result.lastInsertRowid, message: 'Objeto creado' });
 });

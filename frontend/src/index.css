@@ -337,9 +337,15 @@ h1, h2, h3 {
   border-color: var(--accent);
 }
 
-.form-group textarea {
-  min-height: 80px;
-  resize: vertical;
+.form-group input[type="file"] {
+  padding: 8px;
+  background: #fafafa;
+}
+
+.file-name {
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 4px;
 }
 
 .form-row {

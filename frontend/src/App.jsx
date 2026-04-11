@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-const API_URL = '/api/objetos'
+const API_URL = 'https://YOUR-RAILWAY-URL.up.railway.app/api/objetos'
 
 const categorias = ['electrónica', 'documentos', 'llaves', 'ropa', 'joyería', 'otros']
 
@@ -16,7 +16,7 @@ function App() {
     estado: '',
     fecha: '',
     contacto: '',
-    imagen: '',
+    imagen: null,
     ubicacion: ''
   })
 
@@ -47,10 +47,21 @@ function App() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    const data = new FormData()
+    data.append('titulo', formData.titulo)
+    data.append('descripcion', formData.descripcion)
+    data.append('categoria', formData.categoria)
+    data.append('estado', formData.estado)
+    data.append('fecha', formData.fecha)
+    data.append('contacto', formData.contacto)
+    data.append('ubicacion', formData.ubicacion)
+    if (formData.imagen) {
+      data.append('imagen', formData.imagen)
+    }
+    
     await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
+      body: data
     })
     setMostrarForm(false)
     setFormData({
@@ -60,7 +71,7 @@ function App() {
       estado: '',
       fecha: '',
       contacto: '',
-      imagen: '',
+      imagen: null,
       ubicacion: ''
     })
     fetchObjetos()
@@ -229,13 +240,13 @@ function App() {
                 />
               </div>
               <div className="form-group">
-                <label>URL de imagen</label>
+                <label>Imagen</label>
                 <input
-                  type="url"
-                  placeholder="https://..."
-                  value={formData.imagen}
-                  onChange={e => setFormData({ ...formData, imagen: e.target.value })}
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setFormData({ ...formData, imagen: e.target.files[0] })}
                 />
+                {formData.imagen && <p className="file-name">{formData.imagen.name}</p>}
               </div>
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setMostrarForm(false)}>
