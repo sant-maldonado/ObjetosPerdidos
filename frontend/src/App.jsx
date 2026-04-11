@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-const API_URL = 'https://YOUR-RAILWAY-URL.up.railway.app/api/objetos'
+const API_URL = '/api/objetos'
 
 const categorias = ['electrónica', 'documentos', 'llaves', 'ropa', 'joyería', 'otros']
 
