@@ -9,6 +9,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [filtros, setFiltros] = useState({ busqueda: '', categoria: '', estado: '' })
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [mostrarContacto, setMostrarContacto] = useState(false)
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
@@ -19,6 +20,33 @@ function App() {
     imagen: null,
     ubicacion: ''
   })
+  const [obteniendoUbicacion, setObteniendoUbicacion] = useState(false)
+
+  async function obtenerUbicacionActual() {
+    if (!navigator.geolocation) {
+      alert('Tu navegador no soporta geolocalización')
+      return
+    }
+    setObteniendoUbicacion(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+          const data = await res.json()
+          const direccion = data.display_name?.split(',').slice(0, 3).join(',') || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+          setFormData({ ...formData, ubicacion: direccion })
+        } catch {
+          setFormData({ ...formData, ubicacion: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` })
+        }
+        setObteniendoUbicacion(false)
+      },
+      (error) => {
+        alert('Error al obtener ubicación: ' + error.message)
+        setObteniendoUbicacion(false)
+      }
+    )
+  }
 
   async function fetchObjetos() {
     try {
@@ -87,12 +115,15 @@ function App() {
     <div className="app">
       <header className="header">
         <div className="container header-content">
-          <div className="logo">
+          <button className="logo-btn" onClick={() => window.location.href = '/'}>
             <span className="logo-icon">🔍</span>
             <span className="logo-text">FindIt</span>
-          </div>
+          </button>
           <button className="btn btn-primary" onClick={() => setMostrarForm(true)}>
             + Publicar
+          </button>
+          <button className="btn btn-secondary" onClick={() => setMostrarContacto(true)}>
+            Contacto
           </button>
         </div>
       </header>
@@ -232,12 +263,17 @@ function App() {
               </div>
               <div className="form-group">
                 <label>Ubicación</label>
-                <input
-                  type="text"
-                  placeholder="Dónde se perdió/encontró"
-                  value={formData.ubicacion}
-                  onChange={e => setFormData({ ...formData, ubicacion: e.target.value })}
-                />
+                <div className="ubicacion-input">
+                  <input
+                    type="text"
+                    placeholder="Dónde se perdió/encontró"
+                    value={formData.ubicacion}
+                    onChange={e => setFormData({ ...formData, ubicacion: e.target.value })}
+                  />
+                  <button type="button" className="btn-ubicacion" onClick={obtenerUbicacionActual} disabled={obteniendoUbicacion}>
+                    {obteniendoUbicacion ? '...' : '📍'}
+                  </button>
+                </div>
               </div>
               <div className="form-group">
                 <label>Imagen</label>
@@ -258,8 +294,41 @@ function App() {
               </div>
             </form>
           </div>
-        </div>
-      )}
+</div>
+        )}
+
+        {mostrarContacto && (
+          <div className="modal-overlay" onClick={() => setMostrarContacto(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Contacto de la Empresa</h3>
+                <button onClick={() => setMostrarContacto(false)}>&times;</button>
+              </div>
+              <div className="modal-body contacto-modal">
+                <div className="contacto-header">
+                  <span className="contacto-icon">🏢</span>
+                  <h4>TechSolutions S.A.</h4>
+                </div>
+                <p className="contacto-intro">¡Gracias por usar FindIt! Estamos para ayudarte.</p>
+                <div className="contacto-info">
+                  <div className="contacto-item">
+                    <span className="contacto-label">📧 Email</span>
+                    <span className="contacto-value">contacto@techsolutions.com</span>
+                  </div>
+                  <div className="contacto-item">
+                    <span className="contacto-label">📞 Teléfono</span>
+                    <span className="contacto-value">+54 11 1234-5678</span>
+                  </div>
+                  <div className="contacto-item">
+                    <span className="contacto-label">🕐 Horario</span>
+                    <span className="contacto-value">Lunes a Viernes 9:00 - 18:00</span>
+                  </div>
+                </div>
+                <a href="mailto:contacto@techsolutions.com" className="btn-contacto">Enviar Email</a>
+              </div>
+            </div>
+          </div>
+        )}
 
       <footer className="footer">
         <div className="container">
